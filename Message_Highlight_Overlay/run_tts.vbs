@@ -1,2 +1,0 @@
-Set objShell = CreateObject("Wscript.Shell")
-objShell.Run "powershell.exe -NoProfile -ExecutionPolicy Bypass -File ""C:\Program Files\OBS-Studio\Files\Alerts\Message_Highlight_Overlay\tts_highlight.ps1"" -Username """ & WScript.Arguments(0) & """ -Message """ & WScript.Arguments(1) & """ -OutputFile ""C:\Program Files\OBS-Studio\Files\Alerts\Message_Highlight_Overlay\tts_message.wav""", 0, False
