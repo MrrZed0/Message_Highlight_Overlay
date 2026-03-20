@@ -2,6 +2,8 @@
 
 A **real-time Twitch message overlay with Text-To-Speech (TTS)** powered by **Streamer.bot**, **PowerShell**, and a **WebSocket HTML overlay**.
 
+![Image](https://github.com/MrrZed0/Message_Highlight_Overlay/blob/main/Untitled.png?raw=true)
+
 This system:
 
 * Displays user profile, username, and message on screen
@@ -221,6 +223,3 @@ testTtsOverlay();
 ## 📜 License
 
 Free to use, modify, and share.
-
-  
-![Image](https://github.com/MrrZed0/Message_Highlight_Overlay/blob/main/Untitled.png?raw=true)
