@@ -1,0 +1,56 @@
+using System;
+
+public class CPHInline
+{
+    public bool Execute()
+    {
+        try
+        {
+            string showuserprofile = "";
+            string showusername = "";
+            string showusermessage = "";
+
+            CPH.TryGetArg("showuserprofile", out showuserprofile);
+            CPH.TryGetArg("showusername", out showusername);
+            CPH.TryGetArg("showusermessage", out showusermessage);
+
+            showuserprofile = showuserprofile ?? "";
+            showusername = showusername ?? "";
+            showusermessage = showusermessage ?? "";
+
+            string json =
+                "{"
+                + "\"type\":\"custom.twitch.tts\","
+                + "\"payload\":{"
+                + "\"showuserprofile\":\"" + EscapeJson(showuserprofile) + "\","
+                + "\"showusername\":\"" + EscapeJson(showusername) + "\","
+                + "\"showusermessage\":\"" + EscapeJson(showusermessage) + "\","
+                + "\"ttsFile\":\"tts_message.wav\""
+                + "}"
+                + "}";
+
+            CPH.WebsocketBroadcastJson(json);
+            CPH.LogInfo("[Twitch TTS Overlay] Broadcast sent for user: " + showusername);
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            CPH.LogError("[Twitch TTS Overlay] " + ex.ToString());
+            return false;
+        }
+    }
+
+    private string EscapeJson(string value)
+    {
+        if (string.IsNullOrEmpty(value))
+            return "";
+
+        return value
+            .Replace("\\", "\\\\")
+            .Replace("\"", "\\\"")
+            .Replace("\r", "\\r")
+            .Replace("\n", "\\n")
+            .Replace("\t", "\\t");
+    }
+}
