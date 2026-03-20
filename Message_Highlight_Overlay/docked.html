@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Twitch Message Dock</title>
+<style>
+  :root{
+    --bg:#1d1f23;
+    --text:#f2f2f2;
+    --muted:#b8c0cc;
+    --name:#51d14e;
+    --border:#4f545d;
+    --btn:#3c424c;
+    --btn2:#4a515d;
+    --time:#9aa6b8;
+  }
+
+  *{ box-sizing:border-box; }
+
+  html,body{
+    margin:0;
+    padding:0;
+    width:100%;
+    height:100%;
+    background:var(--bg);
+    color:var(--text);
+    font-family:Arial, Helvetica, sans-serif;
+    overflow:hidden;
+  }
+
+  body{
+    display:flex;
+    flex-direction:column;
+  }
+
+  .topbar{
+    display:flex;
+    gap:8px;
+    padding:8px;
+    background:#16181c;
+    border-bottom:1px solid #111;
+    flex:0 0 auto;
+  }
+
+  button{
+    background:var(--btn);
+    color:#f3f3f3;
+    border:1px solid #555b66;
+    border-radius:6px;
+    padding:10px 14px;
+    cursor:pointer;
+    font-size:14px;
+  }
+
+  button:hover{
+    background:var(--btn2);
+  }
+
+  .status{
+    margin-left:auto;
+    align-self:center;
+    color:var(--muted);
+    font-size:13px;
+  }
+
+  .list{
+    flex:1 1 auto;
+    overflow:auto;
+    background:#202329;
+  }
+
+  .item{
+    display:flex;
+    gap:12px;
+    padding:14px;
+    border-bottom:1px solid var(--border);
+    background:#2b2b2b;
+  }
+
+  .avatar{
+    width:42px;
+    height:42px;
+    border-radius:50%;
+    object-fit:cover;
+    flex:0 0 auto;
+    background:#444;
+    border:1px solid #888;
+  }
+
+  .body{
+    flex:1 1 auto;
+    min-width:0;
+  }
+
+  .row1{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+    margin-bottom:6px;
+  }
+
+  .row1-left{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    min-width:0;
+    flex:1 1 auto;
+  }
+
+  .badge{
+    width:16px;
+    height:16px;
+    border-radius:3px;
+    background:#e21d24;
+    position:relative;
+    flex:0 0 auto;
+  }
+
+  .badge::before{
+    content:"";
+    position:absolute;
+    left:3px;
+    top:3px;
+    width:10px;
+    height:10px;
+    background:#fff;
+  }
+
+  .name{
+    color:var(--name);
+    font-weight:700;
+    font-size:18px;
+    min-width:0;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+
+  .time{
+    color:var(--time);
+    font-size:12px;
+    flex:0 0 auto;
+    white-space:nowrap;
+    margin-left:8px;
+  }
+
+  .msg{
+    color:var(--text);
+    font-size:15px;
+    line-height:1.45;
+    white-space:pre-wrap;
+    word-break:break-word;
+    overflow-wrap:anywhere;
+  }
+
+  .empty{
+    padding:18px;
+    color:var(--muted);
+  }
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <button id="clearBtn">Clear</button>
+    <button id="testBtn">Test Message</button>
+    <div id="status" class="status">Connecting...</div>
+  </div>
+
+  <div id="list" class="list">
+    <div class="empty">Waiting for messages...</div>
+  </div>
+
+<script>
+(() => {
+  const WS_URL = 'ws://127.0.0.1:8080/';
+  const MAX_ITEMS = 50;
+
+  const list = document.getElementById('list');
+  const statusEl = document.getElementById('status');
+  const clearBtn = document.getElementById('clearBtn');
+  const testBtn = document.getElementById('testBtn');
+
+  let ws = null;
+  let reconnectTimer = null;
+
+  function setStatus(text){
+    statusEl.textContent = text;
+  }
+
+  function formatTime(date){
+    return date.toLocaleTimeString([], {
+      hour: 'numeric',
+      minute: '2-digit',
+      second: '2-digit'
+    });
+  }
+
+  function escapeHtml(str){
+    return String(str ?? '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#39;');
+  }
+
+  function addItem(data){
+    const profile = data.showuserprofile || '';
+    const user = data.showusername || '';
+    const msg = data.showusermessage || '';
+    const timeText = formatTime(new Date());
+
+    const empty = list.querySelector('.empty');
+    if (empty) empty.remove();
+
+    const item = document.createElement('div');
+    item.className = 'item';
+    item.innerHTML = `
+      <img class="avatar" src="${escapeHtml(profile)}" alt="avatar">
+      <div class="body">
+        <div class="row1">
+          <div class="row1-left">
+            <div class="badge"></div>
+            <div class="name">${escapeHtml(user)}</div>
+          </div>
+          <div class="time">${escapeHtml(timeText)}</div>
+        </div>
+        <div class="msg">${escapeHtml(msg)}</div>
+      </div>
+    `;
+
+    const img = item.querySelector('img');
+    img.onerror = function(){
+      this.onerror = null;
+      this.src = 'https://static-cdn.jtvnw.net/jtv_user_pictures/xarth/404_user_300x300.png';
+    };
+
+    list.prepend(item);
+
+    while (list.children.length > MAX_ITEMS) {
+      list.removeChild(list.lastElementChild);
+    }
+  }
+
+  function clearAll(){
+    list.innerHTML = '<div class="empty">Waiting for messages...</div>';
+  }
+
+  function tryHandleMessage(raw){
+    let msg;
+    try{
+      msg = JSON.parse(raw);
+    }catch{
+      return false;
+    }
+
+    if (msg && msg.event && msg.data && msg.data.type === 'custom.twitch.highlight') {
+      addItem(msg.data.payload || {});
+      return true;
+    }
+
+    if (msg && msg.type === 'custom.twitch.highlight' && msg.payload) {
+      addItem(msg.payload);
+      return true;
+    }
+
+    if (msg && msg.showuserprofile !== undefined && msg.showusername !== undefined && msg.showusermessage !== undefined) {
+      addItem(msg);
+      return true;
+    }
+
+    return false;
+  }
+
+  function connect(){
+    clearTimeout(reconnectTimer);
+    setStatus('Connecting...');
+
+    ws = new WebSocket(WS_URL);
+
+    ws.onopen = () => {
+      setStatus('Connected');
+      try{
+        ws.send(JSON.stringify({
+          request: 'Subscribe',
+          id: 'sub-twitch-highlight-dock',
+          events: {
+            General: ['Custom']
+          }
+        }));
+      }catch(e){}
+    };
+
+    ws.onmessage = (event) => {
+      tryHandleMessage(event.data);
+    };
+
+    ws.onerror = () => {
+      setStatus('WebSocket error');
+    };
+
+    ws.onclose = () => {
+      setStatus('Disconnected, retrying...');
+      reconnectTimer = setTimeout(connect, 2000);
+    };
+  }
+
+  clearBtn.addEventListener('click', clearAll);
+
+  testBtn.addEventListener('click', () => {
+    addItem({
+      showuserprofile: 'https://static-cdn.jtvnw.net/jtv_user_pictures/908be9e8-969f-4ebf-9cc8-a9c7ef9b7b20-profile_image-300x300.png',
+      showusername: 'Teklynk',
+      showusermessage: 'This is a test message for the OBS dock view.'
+    });
+  });
+
+  connect();
+})();
+</script>
+</body>
+</html>
