@@ -220,6 +220,12 @@ testTtsOverlay();
 
 ---
 
+Twitch TTS Highlight Overlay
+streamer.bot tts overlay
+twitch highlight overlay
+#streamer.bot
+streamer.bot
+
 ## 📜 License
 
 Free to use, modify, and share.
